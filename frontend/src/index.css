@@ -1,57 +1,59 @@
 :root {
-  /* Color Palette */
-  --c-1: #d8f3dc;
-  --c-2: #b7e4c7;
-  --c-3: #95d5b2;
-  --c-4: #74c69d;
-  --c-5: #52b788;
-  --c-6: #40916c;
-  --c-7: #2d6a4f;
-  --c-8: #1b4332;
-  --c-9: #081c15;
+    /* Blue Color Palette */
+    --c-1: #e2fdff;
+    /* Lightest */
+    --c-2: #bfd7ff;
+    --c-3: #9bb1ff;
+    --c-4: #788bff;
+    --c-5: #5465ff;
+    /* Primary Blue */
 
-  /* Semantic Colors */
-  --bg-deep: var(--c-9);
-  --bg-card: rgba(27, 67, 50, 0.4);
-  --bg-input: rgba(8, 28, 21, 0.6);
-  --text-primary: var(--c-1);
-  --text-secondary: var(--c-3);
-  --text-muted: var(--c-5);
-  --accent: var(--c-4);
-  --accent-hover: var(--c-3);
-  
-  /* Risk Colors */
-  --risk-high: #ff4d4d;
-  --risk-mid: #ffcc00;
-  --risk-low: var(--c-4);
+    /* Semantic Colors */
+    --bg-deep: #0a0c1a;
+    /* Very dark blue/black for depth */
+    --bg-card: rgba(20, 24, 46, 0.6);
+    --bg-input: rgba(10, 12, 26, 0.8);
+    --text-primary: var(--c-1);
+    --text-secondary: var(--c-2);
+    --text-muted: var(--c-3);
+    --accent: var(--c-5);
+    --accent-hover: var(--c-4);
 
-  /* Transitions */
-  --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    /* Risk Colors */
+    --risk-high: #ff4d4d;
+    --risk-mid: #ffcc00;
+    --risk-low: #00e676;
+
+    /* Transitions */
+    --transition-smooth: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
 }
 
 * {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
 }
 
 body {
-  font-family: 'Outfit', sans-serif;
-  background-color: var(--bg-deep);
-  color: var(--text-primary);
-  line-height: 1.6;
-  overflow-x: hidden;
-  min-height: 100vh;
-  background-image: 
-    radial-gradient(circle at 10% 20%, rgba(82, 183, 136, 0.05) 0%, transparent 40%),
-    radial-gradient(circle at 90% 80%, rgba(45, 106, 79, 0.05) 0%, transparent 40%);
+    font-family: 'Outfit', sans-serif;
+    background-color: var(--bg-deep);
+    color: var(--text-primary);
+    line-height: 1.6;
+    overflow-x: hidden;
+    min-height: 100vh;
+    background-image:
+        radial-gradient(circle at 0% 0%, rgba(84, 101, 255, 0.08) 0%, transparent 50%),
+        radial-gradient(circle at 100% 100%, rgba(120, 139, 255, 0.08) 0%, transparent 50%);
 }
 
-button, input, select, textarea {
-  font-family: inherit;
+button,
+input,
+select,
+textarea {
+    font-family: inherit;
 }
 
 ::selection {
-  background: var(--c-5);
-  color: var(--c-9);
+    background: var(--c-4);
+    color: var(--bg-deep);
 }

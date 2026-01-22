@@ -103,10 +103,10 @@ function App() {
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.6 }}
         >
-          <div className="step-indicator" style={{ display: 'flex', gap: '8px', marginBottom: '32px' }}>
-            <div style={{ height: '4px', flex: 1, background: step >= 1 ? 'var(--c-4)' : 'var(--bg-input)', borderRadius: '2px', transition: 'var(--transition-smooth)' }} />
-            <div style={{ height: '4px', flex: 1, background: step >= 2 ? 'var(--c-4)' : 'var(--bg-input)', borderRadius: '2px', transition: 'var(--transition-smooth)' }} />
-            <div style={{ height: '4px', flex: 1, background: result ? 'var(--c-4)' : 'var(--bg-input)', borderRadius: '2px', transition: 'var(--transition-smooth)' }} />
+          <div className="step-indicator" style={{ display: 'flex', gap: '12px', marginBottom: '48px' }}>
+            <div style={{ height: '6px', flex: 1, background: step >= 1 ? 'var(--c-5)' : 'var(--bg-input)', borderRadius: '100px', transition: 'var(--transition-smooth)' }} />
+            <div style={{ height: '6px', flex: 1, background: step >= 2 ? 'var(--c-5)' : 'var(--bg-input)', borderRadius: '100px', transition: 'var(--transition-smooth)' }} />
+            <div style={{ height: '6px', flex: 1, background: result ? 'var(--c-5)' : 'var(--bg-input)', borderRadius: '100px', transition: 'var(--transition-smooth)' }} />
           </div>
 
           <AnimatePresence mode="wait">
