@@ -1,8 +1,10 @@
 import { useState } from 'react'
 import axios from 'axios'
 import { motion, AnimatePresence } from 'framer-motion'
-import { AlertTriangle, CheckCircle, Info, Loader2, Sparkles, Edit3, ShieldCheck, ChevronDown, ChevronUp } from 'lucide-react'
+import { AlertTriangle, CheckCircle, Info, Loader2, Sparkles, Edit3, ShieldCheck, ChevronDown, ChevronUp, Briefcase, BarChart3, Target, Cpu } from 'lucide-react'
 import './App.css'
+
+const API_BASE = import.meta.env.VITE_API_URL;
 
 function App() {
   // Step 1: User Input Data
@@ -36,7 +38,7 @@ function App() {
     setLoading(true)
     setError(null)
     try {
-      const response = await axios.post('http://localhost:5000/infer-features', jobInfo)
+      const response = await axios.post(`${API_BASE}/infer-features`, jobInfo)
       setInferredFeatures(response.data)
       setStep(2)
     } catch (err) {
@@ -55,7 +57,7 @@ function App() {
         ...inferredFeatures,
         seniority_level: jobInfo.seniority_level
       }
-      const response = await axios.post('http://localhost:5000/predict', predictionPayload)
+      const response = await axios.post(`${API_BASE}/predict`, predictionPayload)
       setResult(response.data)
     } catch (err) {
       setError('Prediction failed.')
@@ -65,58 +67,57 @@ function App() {
     }
   }
 
-  // Mapping functions for UI to ML features
-  const getAIExposureLabel = (score) => {
-    if (score <= 0.3) return "None or very little";
-    if (score <= 0.6) return "Some parts of my work";
-    if (score <= 0.85) return "A large part of my work";
-    return "Almost all of my work";
-  }
-
-  const getMaturityLabel = (stage) => {
-    const mapping = { 'Emerging': 'Rare or experimental', 'Growing': 'Used by leading companies', 'Mature': 'Standard across most companies' };
-    return mapping[stage] || 'Used by leading companies';
-  }
-
-  const getWorkTypeLabel = (cluster) => {
-    const mapping = { 0: 'Research & experimentation', 1: 'Software / ML engineering', 2: 'Operations / monitoring', 3: 'Business / coordination', 4: 'Creative / design' };
-    return mapping[cluster] || 'Operations / monitoring';
-  }
-
   return (
     <div className="app-container">
       <header>
         <motion.div
-          initial={{ opacity: 0, scale: 0.8 }}
-          animate={{ opacity: 1, scale: 1 }}
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
           className="logo-badge"
         >
-          <Sparkles size={20} /> AI-Powered
+          <Cpu size={18} /> AI Intelligence Engine
         </motion.div>
         <motion.h1
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
         >
-          AI Job Displacement Predictor
+          AI Job Risk Predictor
         </motion.h1>
-        <p className="subtitle">Assess how automation trends may impact your role</p>
+        <motion.p
+          className="subtitle"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.2 }}
+        >
+          Quantify the impact of automation on your career using advanced machine learning models.
+        </motion.p>
       </header>
 
       <div className="main-content">
         <motion.div
           className="card"
-          initial={{ opacity: 0, x: -20 }}
+          initial={{ opacity: 0, x: -30 }}
           animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.6 }}
         >
+          <div className="step-indicator" style={{ display: 'flex', gap: '8px', marginBottom: '32px' }}>
+            <div style={{ height: '4px', flex: 1, background: step >= 1 ? 'var(--c-4)' : 'var(--bg-input)', borderRadius: '2px', transition: 'var(--transition-smooth)' }} />
+            <div style={{ height: '4px', flex: 1, background: step >= 2 ? 'var(--c-4)' : 'var(--bg-input)', borderRadius: '2px', transition: 'var(--transition-smooth)' }} />
+            <div style={{ height: '4px', flex: 1, background: result ? 'var(--c-4)' : 'var(--bg-input)', borderRadius: '2px', transition: 'var(--transition-smooth)' }} />
+          </div>
+
           <AnimatePresence mode="wait">
             {step === 1 ? (
               <motion.div
                 key="step1"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, x: -20 }}
               >
-                <h3 className="step-title">Step 1: Job Information</h3>
+                <h3 className="step-title"><Briefcase size={24} /> Job Information</h3>
+                <p className="step-subtitle">Tell us about your current role to begin the analysis.</p>
+
                 <form onSubmit={handleInfer}>
                   <div className="form-grid">
                     <div className="form-group">
@@ -135,14 +136,14 @@ function App() {
                       name="job_responsibilities"
                       value={jobInfo.job_responsibilities}
                       onChange={handleInputChange}
-                      placeholder="Describe your daily tasks..."
-                      rows="3"
+                      placeholder="Describe your primary tasks and daily responsibilities..."
+                      rows="4"
                     />
                   </div>
 
                   <div className="form-grid">
                     <div className="form-group">
-                      <label>Seniority</label>
+                      <label>Seniority Level</label>
                       <select name="seniority_level" value={jobInfo.seniority_level} onChange={handleInputChange}>
                         {['Intern', 'Junior', 'Mid', 'Senior', 'Lead'].map(opt => <option key={opt} value={opt}>{opt}</option>)}
                       </select>
@@ -155,23 +156,8 @@ function App() {
                     </div>
                   </div>
 
-                  <div className="form-grid">
-                    <div className="form-group">
-                      <label>Work Type</label>
-                      <select name="work_type" value={jobInfo.work_type} onChange={handleInputChange}>
-                        {['Research', 'Engineering', 'Operations', 'Support', 'Creative'].map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                      </select>
-                    </div>
-                    <div className="form-group">
-                      <label>AI Exposure</label>
-                      <select name="ai_exposure" value={jobInfo.ai_exposure} onChange={handleInputChange}>
-                        {['Low', 'Medium', 'High'].map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                      </select>
-                    </div>
-                  </div>
-
                   <button type="submit" className="submit-btn" disabled={loading}>
-                    {loading ? <Loader2 className="loading-spinner" /> : <><Sparkles size={18} /> Infer Features</>}
+                    {loading ? <Loader2 className="loading-spinner" /> : <><Sparkles size={20} /> Analyze Role Details</>}
                   </button>
                 </form>
               </motion.div>
@@ -180,30 +166,36 @@ function App() {
                 key="step2"
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
               >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                  <h3 className="step-title" style={{ marginBottom: 0 }}>Step 2: Confirm Your Role Details</h3>
-                  <button onClick={() => setStep(1)} className="text-btn"><Edit3 size={14} /> Edit Info</button>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                  <h3 className="step-title" style={{ marginBottom: 0 }}><Target size={24} /> Refine Analysis</h3>
+                  <button onClick={() => setStep(1)} className="text-btn"><Edit3 size={16} /> Edit Info</button>
                 </div>
-                <p className="step-subtitle">We interpreted your job based on your input. Please confirm or adjust the details below to improve accuracy.</p>
+                <p className="step-subtitle">We've inferred these details from your description. Please verify them for maximum accuracy.</p>
 
                 {inferredFeatures?.is_low_confidence && (
                   <div className="warning-box">
-                    <AlertTriangle size={16} /> ⚠️ We’re less confident because your job description was brief or ambiguous. Please confirm the details below to improve accuracy.
+                    <AlertTriangle size={20} />
+                    <div>
+                      <strong>Low Confidence Detection</strong>
+                      <p style={{ margin: '4px 0 0 0', fontSize: '0.85rem', opacity: 0.9 }}>Your description was a bit brief. Please ensure the selections below accurately reflect your role.</p>
+                    </div>
                   </div>
                 )}
 
                 <div className="form-group">
-                  <label>How much of your daily work involves interacting with AI systems or automation?</label>
+                  <label>AI Interaction Intensity</label>
                   <div className="option-grid">
                     {[
-                      { label: "None or very little", val: 0.15 },
-                      { label: "Some parts of my work", val: 0.45 },
-                      { label: "A large part of my work", val: 0.70 },
-                      { label: "Almost all of my work", val: 0.90 }
+                      { label: "Minimal", val: 0.15 },
+                      { label: "Moderate", val: 0.45 },
+                      { label: "Significant", val: 0.70 },
+                      { label: "Core Component", val: 0.90 }
                     ].map(opt => (
                       <button
                         key={opt.val}
+                        type="button"
                         className={`option-btn ${inferredFeatures.ai_intensity_score === opt.val ? 'active' : ''}`}
                         onClick={() => setInferredFeatures(prev => ({ ...prev, ai_intensity_score: opt.val }))}
                       >
@@ -214,15 +206,16 @@ function App() {
                 </div>
 
                 <div className="form-group">
-                  <label>How widely is AI used in your industry today?</label>
+                  <label>Industry AI Adoption Stage</label>
                   <div className="option-grid">
                     {[
-                      { label: "Rare or experimental", val: "Emerging" },
-                      { label: "Used by leading companies", val: "Growing" },
-                      { label: "Standard across most companies", val: "Mature" }
+                      { label: "Emerging", val: "Emerging" },
+                      { label: "Growing", val: "Growing" },
+                      { label: "Mature", val: "Mature" }
                     ].map(opt => (
                       <button
                         key={opt.val}
+                        type="button"
                         className={`option-btn ${inferredFeatures.industry_ai_adoption_stage === opt.val ? 'active' : ''}`}
                         onClick={() => setInferredFeatures(prev => ({ ...prev, industry_ai_adoption_stage: opt.val }))}
                       >
@@ -233,17 +226,18 @@ function App() {
                 </div>
 
                 <div className="form-group">
-                  <label>Which best describes the main nature of your work?</label>
+                  <label>Primary Nature of Work</label>
                   <div className="option-grid">
                     {[
-                      { label: "Research & experimentation", val: 0 },
-                      { label: "Software / ML engineering", val: 1 },
-                      { label: "Operations / monitoring", val: 2 },
-                      { label: "Business / coordination", val: 3 },
-                      { label: "Creative / design", val: 4 }
+                      { label: "Research", val: 0 },
+                      { label: "Engineering", val: 1 },
+                      { label: "Operations", val: 2 },
+                      { label: "Business", val: 3 },
+                      { label: "Creative", val: 4 }
                     ].map(opt => (
                       <button
                         key={opt.val}
+                        type="button"
                         className={`option-btn ${inferredFeatures.job_description_embedding_cluster == opt.val ? 'active' : ''}`}
                         onClick={() => setInferredFeatures(prev => ({ ...prev, job_description_embedding_cluster: opt.val }))}
                       >
@@ -254,31 +248,34 @@ function App() {
                 </div>
 
                 <div className="advanced-section">
-                  <button className="advanced-toggle" onClick={() => setShowAdvanced(!showAdvanced)}>
-                    Advanced (optional) {showAdvanced ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                  <button type="button" className="advanced-toggle" onClick={() => setShowAdvanced(!showAdvanced)}>
+                    {showAdvanced ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+                    Model Parameters
                   </button>
-                  {showAdvanced && (
-                    <motion.div
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: 'auto', opacity: 1 }}
-                      className="advanced-content"
-                    >
-                      <div className="debug-item">
-                        <span>AI exposure level:</span>
-                        <span className="debug-val">{inferredFeatures.ai_intensity_score > 0.7 ? 'High' : inferredFeatures.ai_intensity_score > 0.3 ? 'Medium' : 'Low'}</span>
-                      </div>
-                      <div className="debug-item">
-                        <span>Industry AI maturity:</span>
-                        <span className="debug-val">{inferredFeatures.industry_ai_adoption_stage}</span>
-                      </div>
-                    </motion.div>
-                  )}
+                  <AnimatePresence>
+                    {showAdvanced && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        className="advanced-content"
+                      >
+                        <div className="debug-item">
+                          <span>Exposure Score:</span>
+                          <span className="debug-val">{(inferredFeatures.ai_intensity_score * 100).toFixed(0)}%</span>
+                        </div>
+                        <div className="debug-item">
+                          <span>Market Maturity:</span>
+                          <span className="debug-val">{inferredFeatures.industry_ai_adoption_stage}</span>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
 
                 <button onClick={handlePredict} className="submit-btn predict-btn" disabled={loading}>
-                  {loading ? <Loader2 className="loading-spinner" /> : <><ShieldCheck size={18} /> Assess My Job Risk</>}
+                  {loading ? <Loader2 className="loading-spinner" /> : <><ShieldCheck size={20} /> Generate Risk Report</>}
                 </button>
-                <p className="helper-text">Your answers will be used to assess how automation trends may impact similar roles.</p>
               </motion.div>
             )}
           </AnimatePresence>
@@ -286,39 +283,41 @@ function App() {
 
         <motion.div
           className="card"
-          initial={{ opacity: 0, x: 20 }}
+          initial={{ opacity: 0, x: 30 }}
           animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.2 }}
+          transition={{ duration: 0.6, delay: 0.2 }}
         >
           <AnimatePresence mode="wait">
             {result ? (
               <motion.div
                 key="result"
                 className="result-container"
-                initial={{ opacity: 0, scale: 0.9 }}
+                initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
               >
                 <div className="risk-header">
-                  <span className="risk-title">AI Displacement Risk</span>
+                  <BarChart3 size={20} className="info-icon" />
+                  <span className="risk-title">Displacement Analysis</span>
                   <div className="tooltip-container">
                     <Info size={16} className="info-icon" />
                     <div className="tooltip-text">
-                      This is not a prediction about you personally. It reflects patterns observed across similar jobs in historical data.
+                      This score is derived from historical automation trends and current AI capability benchmarks for similar roles.
                     </div>
                   </div>
                 </div>
 
                 <div className="risk-gauge">
                   <svg viewBox="0 0 100 100" style={{ transform: 'rotate(-90deg)' }}>
-                    <circle cx="50" cy="50" r="45" fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="8" />
+                    <circle cx="50" cy="50" r="45" fill="none" stroke="rgba(216, 243, 220, 0.05)" strokeWidth="6" />
                     <motion.circle
                       cx="50" cy="50" r="45" fill="none"
-                      stroke={result.risk_score >= 0.5 ? '#ef4444' : result.risk_score >= 0.2 ? '#f59e0b' : '#22c55e'}
+                      stroke={result.risk_score >= 0.5 ? 'var(--risk-high)' : result.risk_score >= 0.2 ? 'var(--risk-mid)' : 'var(--risk-low)'}
                       strokeWidth="8"
+                      strokeLinecap="round"
                       strokeDasharray="283"
                       initial={{ strokeDashoffset: 283 }}
                       animate={{ strokeDashoffset: 283 - (283 * result.risk_score) }}
-                      transition={{ duration: 1.5, ease: "easeOut" }}
+                      transition={{ duration: 2, ease: "easeOut" }}
                     />
                   </svg>
                   <div className={`risk-value ${result.risk_score >= 0.5 ? 'high-risk' : result.risk_score >= 0.2 ? 'moderate-risk' : 'low-risk'}`}>
@@ -327,37 +326,42 @@ function App() {
                 </div>
 
                 <div className={`risk-label ${result.risk_score >= 0.5 ? 'high-risk' : result.risk_score >= 0.2 ? 'moderate-risk' : 'low-risk'}`}>
-                  {result.risk_score >= 0.5 ? "High Displacement Risk" : result.risk_score >= 0.2 ? "Moderate Displacement Risk" : "Low Displacement Risk"}
+                  {result.risk_score >= 0.5 ? "High Risk" : result.risk_score >= 0.2 ? "Moderate Risk" : "Low Risk"}
                 </div>
 
                 <p className="risk-helper">
-                  This represents the estimated likelihood that similar roles may be impacted by AI-driven automation. Lower values indicate lower risk.
+                  Likelihood of significant task automation within the next 3-5 years.
                 </p>
 
-                <p className="result-desc">
+                <div className="result-desc">
                   {result.risk_score >= 0.5
-                    ? "Many tasks in similar roles are susceptible to automation based on current AI trends."
+                    ? "Your role involves a high volume of tasks that align with current AI capabilities. Focus on developing high-level strategic and interpersonal skills."
                     : result.risk_score >= 0.2
-                      ? "Some aspects of similar roles may be impacted by AI, but human decision-making remains important."
-                      : "Roles like yours typically involve skills that are harder to automate with current AI systems."}
-                </p>
+                      ? "While some tasks may be automated, your role likely requires human intuition and complex decision-making that AI currently lacks."
+                      : "Your role is highly resilient to current automation trends, relying on skills that are difficult for AI to replicate effectively."}
+                </div>
 
-                <button onClick={() => { setResult(null); setStep(1) }} className="reset-btn">New Analysis</button>
+                <button onClick={() => { setResult(null); setStep(1) }} className="reset-btn">Start New Analysis</button>
               </motion.div>
             ) : (
               <div className="result-container">
                 <div className="empty-state">
-                  <div className="pulse-icon"><Info size={32} /></div>
-                  <p>Complete Step 1 and 2 to generate your AI Risk Report.</p>
+                  <div className="pulse-icon"><BarChart3 size={48} /></div>
+                  <h3 style={{ color: 'var(--c-1)', marginBottom: '8px' }}>Awaiting Data</h3>
+                  <p style={{ maxWidth: '250px' }}>Complete the role assessment on the left to generate your personalized risk report.</p>
                 </div>
               </div>
             )}
           </AnimatePresence>
 
           {error && (
-            <div className="error-box">
-              <AlertTriangle size={16} /> {error}
-            </div>
+            <motion.div
+              className="error-box"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+            >
+              <AlertTriangle size={20} /> {error}
+            </motion.div>
           )}
         </motion.div>
       </div>

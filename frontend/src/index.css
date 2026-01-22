@@ -1,1 +1,57 @@
-/* Reset and base styles are handled in App.css */
+:root {
+  /* Color Palette */
+  --c-1: #d8f3dc;
+  --c-2: #b7e4c7;
+  --c-3: #95d5b2;
+  --c-4: #74c69d;
+  --c-5: #52b788;
+  --c-6: #40916c;
+  --c-7: #2d6a4f;
+  --c-8: #1b4332;
+  --c-9: #081c15;
+
+  /* Semantic Colors */
+  --bg-deep: var(--c-9);
+  --bg-card: rgba(27, 67, 50, 0.4);
+  --bg-input: rgba(8, 28, 21, 0.6);
+  --text-primary: var(--c-1);
+  --text-secondary: var(--c-3);
+  --text-muted: var(--c-5);
+  --accent: var(--c-4);
+  --accent-hover: var(--c-3);
+  
+  /* Risk Colors */
+  --risk-high: #ff4d4d;
+  --risk-mid: #ffcc00;
+  --risk-low: var(--c-4);
+
+  /* Transitions */
+  --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Outfit', sans-serif;
+  background-color: var(--bg-deep);
+  color: var(--text-primary);
+  line-height: 1.6;
+  overflow-x: hidden;
+  min-height: 100vh;
+  background-image: 
+    radial-gradient(circle at 10% 20%, rgba(82, 183, 136, 0.05) 0%, transparent 40%),
+    radial-gradient(circle at 90% 80%, rgba(45, 106, 79, 0.05) 0%, transparent 40%);
+}
+
+button, input, select, textarea {
+  font-family: inherit;
+}
+
+::selection {
+  background: var(--c-5);
+  color: var(--c-9);
+}
