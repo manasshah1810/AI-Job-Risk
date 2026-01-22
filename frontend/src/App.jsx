@@ -55,7 +55,9 @@ function App() {
     try {
       const predictionPayload = {
         ...inferredFeatures,
-        seniority_level: jobInfo.seniority_level
+        seniority_level: jobInfo.seniority_level,
+        industry: jobInfo.industry,
+        company_size: jobInfo.company_size
       }
       const response = await axios.post(`${API_BASE}/predict`, predictionPayload)
       setResult(response.data)

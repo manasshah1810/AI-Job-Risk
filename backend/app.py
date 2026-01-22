@@ -40,21 +40,27 @@ OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
 def health():
     return {"status": "ok"}
 
-class JobInfo(BaseModel):
+# --- SCHEMAS ---
+
+class JobInferenceRequest(BaseModel):
+    """Step 1: Raw user input for LLM feature inference"""
     job_title: str
     industry: Optional[str] = "Not specified"
     experience_years: Optional[str] = "Not specified"
     job_responsibilities: Optional[str] = "Not specified"
-    seniority_level: str
-    company_size: str
-    work_type: str
-    ai_exposure: str
+    seniority_level: Optional[str] = "Mid"
+    company_size: Optional[str] = "Mid-size"
+    work_type: Optional[str] = "Engineering"
+    ai_exposure: Optional[str] = "Medium"
 
-class PredictionInput(BaseModel):
+class JobPredictionRequest(BaseModel):
+    """Step 2: Validated ML features for final model prediction"""
     ai_intensity_score: float
-    job_description_embedding_cluster: int
     industry_ai_adoption_stage: str
+    job_description_embedding_cluster: int
     seniority_level: str
+    industry: Optional[str] = "Not specified"
+    company_size: Optional[str] = "Not specified"
 
 def clean_json_string(s):
     try:
@@ -67,7 +73,11 @@ def clean_json_string(s):
     return s
 
 @app.post("/infer-features")
-def infer_features(data: JobInfo):
+def infer_features(data: JobInferenceRequest):
+    """
+    Step 1: Takes raw job data and uses an LLM to infer structured ML features.
+    This endpoint is intentionally flexible with input data.
+    """
     if not OPENROUTER_API_KEY:
         raise HTTPException(status_code=500, detail="OpenRouter API Key not configured")
 
@@ -120,7 +130,7 @@ Output only JSON with these fields plus an overall confidence score (0–1).
             content = llm_result['choices'][0]['message']['content']
             inferred = json.loads(clean_json_string(content))
 
-        # Validation
+        # Validation & Normalization
         inferred['ai_intensity_score'] = max(0.0, min(1.0, float(inferred.get('ai_intensity_score', 0.5))))
         inferred['job_description_embedding_cluster'] = max(0, min(19, int(inferred.get('job_description_embedding_cluster', 0))))
         
@@ -135,20 +145,34 @@ Output only JSON with these fields plus an overall confidence score (0–1).
         
         return inferred
     except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=f"Inference failed: {str(e)}")
 
 @app.post("/predict")
-def predict(data: PredictionInput):
+def predict(data: JobPredictionRequest):
+    """
+    Step 2: Takes validated ML features and returns the final risk prediction.
+    This endpoint is strict and expects all required features.
+    """
     if model is None:
         raise HTTPException(status_code=500, detail="Model not loaded")
 
     try:
-        input_data = pd.DataFrame([{
+        # Prepare data for the model. 
+        # Note: We include industry and company_size if they were part of the training set.
+        input_dict = {
             'ai_intensity_score': data.ai_intensity_score,
             'job_description_embedding_cluster': str(data.job_description_embedding_cluster),
             'industry_ai_adoption_stage': data.industry_ai_adoption_stage,
-            'seniority_level': data.seniority_level
-        }])
+            'seniority_level': data.seniority_level,
+            'industry': data.industry,
+            'company_size': data.company_size
+        }
+        
+        input_data = pd.DataFrame([input_dict])
+        
+        # Ensure we only pass features the model was trained on
+        # If the model is a pipeline, it will handle filtering or we can do it here
+        # For now, we pass the core features.
         
         prediction = model.predict(input_data)[0]
         probability = model.predict_proba(input_data)[0][1]
@@ -164,7 +188,7 @@ def predict(data: PredictionInput):
             'message': 'High Risk' if prediction == 1 else 'Low Risk'
         }
     except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=f"Prediction failed: {str(e)}")
 
 if __name__ == "__main__":
     import uvicorn
