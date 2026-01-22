@@ -9,6 +9,7 @@ import os
 from dotenv import load_dotenv
 from pydantic import BaseModel
 from typing import Optional
+from openai import OpenAI
 
 # Load environment variables from .env file
 load_dotenv()
@@ -32,6 +33,11 @@ except Exception as e:
     raise RuntimeError(f"Model failed to load: {e}")
 
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
+
+client = OpenAI(
+  base_url="https://openrouter.ai/api/v1",
+  api_key=OPENROUTER_API_KEY,
+)
 
 @app.get("/health")
 def health():
@@ -107,26 +113,16 @@ Return ONLY a JSON object. No preamble.
         print(f"DEBUG: Calling OpenRouter with model {model_name}. Key preview: {key_preview}")
         
         try:
-            response = requests.post(
-                url="https://openrouter.ai/api/v1/chat/completions",
-                headers={
-                    "Authorization": f"Bearer {OPENROUTER_API_KEY}",
-                    "Content-Type": "application/json",
-                    "HTTP-Referer": "https://ai-job-risk.vercel.app",
-                    "X-Title": "AI Job Risk Predictor",
-                },
-                data=json.dumps({
-                    "model": model_name,
-                    "messages": [
-                        {"role": "system", "content": "You are a technical assistant that outputs only valid JSON."},
-                        {"role": "user", "content": prompt_content}
-                    ],
-                    "temperature": 0.1
-                }),
+            completion = client.chat.completions.create(
+                model=model_name,
+                messages=[
+                    {"role": "system", "content": "You are a technical assistant that outputs only valid JSON."},
+                    {"role": "user", "content": prompt_content}
+                ],
+                temperature=0.1,
                 timeout=20
             )
-            response.raise_for_status()
-            return response.json()
+            return {"content": completion.choices[0].message.content}
         except Exception as e:
             print(f"ERROR: OpenRouter call failed: {str(e)}")
             return {"error": str(e)}
@@ -143,7 +139,7 @@ Return ONLY a JSON object. No preamble.
 
     content = "No content"
     try:
-        content = llm_result['choices'][0]['message']['content']
+        content = llm_result.get('content', 'No content')
         cleaned_content = clean_json_string(content)
         inferred = json.loads(cleaned_content)
 
