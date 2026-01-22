@@ -101,7 +101,11 @@ Return ONLY a JSON object. No preamble.
 }}
 """
 
-    def call_llm(model_name="google/gemma-2-9b-it:free"):
+    def call_llm(model_name="google/gemma-3n-e2b-it:free"):
+        # Debug: Print masked key to logs (only first 4 chars)
+        key_preview = f"{OPENROUTER_API_KEY[:4]}..." if OPENROUTER_API_KEY else "None"
+        print(f"DEBUG: Calling OpenRouter with model {model_name}. Key preview: {key_preview}")
+        
         try:
             response = requests.post(
                 url="https://openrouter.ai/api/v1/chat/completions",
@@ -124,14 +128,15 @@ Return ONLY a JSON object. No preamble.
             response.raise_for_status()
             return response.json()
         except Exception as e:
+            print(f"ERROR: OpenRouter call failed: {str(e)}")
             return {"error": str(e)}
 
-    # Try primary model
-    llm_result = call_llm("google/gemma-2-9b-it:free")
+    # Try primary model (Gemma 3 as requested in snippet)
+    llm_result = call_llm("google/gemma-3n-e2b-it:free")
     
     # Fallback if primary fails
     if "error" in llm_result:
-        llm_result = call_llm("mistralai/mistral-7b-instruct:free")
+        llm_result = call_llm("google/gemma-2-9b-it:free")
 
     if "error" in llm_result:
         raise HTTPException(status_code=400, detail=f"LLM Provider Error: {llm_result['error']}")
