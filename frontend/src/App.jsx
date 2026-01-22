@@ -42,8 +42,9 @@ function App() {
       setInferredFeatures(response.data)
       setStep(2)
     } catch (err) {
-      setError('Failed to infer features. Ensure backend is running and API key is valid.')
-      console.error(err)
+      const msg = err.response?.data?.detail || err.message || 'An unexpected error occurred';
+      setError(`Inference Error: ${msg}`);
+      console.error('Full Error Object:', err);
     } finally {
       setLoading(false)
     }

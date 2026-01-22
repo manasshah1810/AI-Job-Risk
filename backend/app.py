@@ -18,10 +18,7 @@ app = FastAPI(title="AI Job Risk Predictor API")
 # Enable CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",
-        "https://ai-job-risk.vercel.app"
-    ],
+    allow_origins=["*"], # Relaxed for production debugging
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -63,72 +60,87 @@ class JobPredictionRequest(BaseModel):
     company_size: Optional[str] = "Not specified"
 
 def clean_json_string(s):
+    """Robustly extract JSON from LLM response, handling markdown blocks and noise."""
     try:
+        # Remove markdown code blocks if present
+        if "```json" in s:
+            s = s.split("```json")[1].split("```")[0]
+        elif "```" in s:
+            s = s.split("```")[1].split("```")[0]
+        
         start = s.find('{')
         end = s.rfind('}') + 1
         if start != -1 and end != 0:
-            return s[start:end]
+            return s[start:end].strip()
     except:
         pass
-    return s
+    return s.strip()
 
 @app.post("/infer-features")
 def infer_features(data: JobInferenceRequest):
-    """
-    Step 1: Takes raw job data and uses an LLM to infer structured ML features.
-    This endpoint is intentionally flexible with input data.
-    """
-    if not OPENROUTER_API_KEY:
-        raise HTTPException(status_code=500, detail="OpenRouter API Key not configured")
+    if not OPENROUTER_API_KEY or len(OPENROUTER_API_KEY) < 10:
+        raise HTTPException(status_code=500, detail="Invalid or missing OPENROUTER_API_KEY on server")
 
     prompt_content = f"""
 Job Title: {data.job_title}
 Industry: {data.industry}
-Experience (years): {data.experience_years}
 Responsibilities: {data.job_responsibilities}
-Seniority Level: {data.seniority_level}
-Company Size: {data.company_size}
-Primary Work Type: {data.work_type}
-AI Exposure: {data.ai_exposure}
+Seniority: {data.seniority_level}
  
-Infer the following machine-learning features:
-- ai_intensity_score (float between 0 and 1)
-- industry_ai_adoption_stage (Emerging / Growing / Mature)
-- job_description_embedding_cluster (integer between 0 and 19)
+Infer these ML features:
+1. ai_intensity_score (0.0 to 1.0)
+2. industry_ai_adoption_stage (Emerging, Growing, or Mature)
+3. job_description_embedding_cluster (0 to 19)
  
-Output only JSON with these fields plus an overall confidence score (0–1).
+Return ONLY a JSON object. No preamble.
+{{
+  "ai_intensity_score": float,
+  "industry_ai_adoption_stage": "string",
+  "job_description_embedding_cluster": int,
+  "confidence": float
+}}
 """
 
-    def call_llm():
-        response = requests.post(
-            url="https://openrouter.ai/api/v1/chat/completions",
-            headers={
-                "Authorization": f"Bearer {OPENROUTER_API_KEY}",
-                "Content-Type": "application/json",
-                "HTTP-Referer": "https://ai-job-risk.vercel.app",
-                "X-Title": "AI Job Risk Predictor",
-            },
-            data=json.dumps({
-                "model": "allenai/molmo-2-8b:free",
-                "messages": [
-                    {"role": "system", "content": "You convert job descriptions into structured ML features. Output JSON only. No explanations."},
-                    {"role": "user", "content": prompt_content}
-                ]
-            }),
-            timeout=30
-        )
-        return response.json()
-
-    try:
-        llm_result = call_llm()
-        content = llm_result['choices'][0]['message']['content']
-        
+    def call_llm(model_name="google/gemma-2-9b-it:free"):
         try:
-            inferred = json.loads(clean_json_string(content))
-        except:
-            llm_result = call_llm()
-            content = llm_result['choices'][0]['message']['content']
-            inferred = json.loads(clean_json_string(content))
+            response = requests.post(
+                url="https://openrouter.ai/api/v1/chat/completions",
+                headers={
+                    "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+                    "Content-Type": "application/json",
+                    "HTTP-Referer": "https://ai-job-risk.vercel.app",
+                    "X-Title": "AI Job Risk Predictor",
+                },
+                data=json.dumps({
+                    "model": model_name,
+                    "messages": [
+                        {"role": "system", "content": "You are a technical assistant that outputs only valid JSON."},
+                        {"role": "user", "content": prompt_content}
+                    ],
+                    "temperature": 0.1
+                }),
+                timeout=20
+            )
+            response.raise_for_status()
+            return response.json()
+        except Exception as e:
+            return {"error": str(e)}
+
+    # Try primary model
+    llm_result = call_llm("google/gemma-2-9b-it:free")
+    
+    # Fallback if primary fails
+    if "error" in llm_result:
+        llm_result = call_llm("mistralai/mistral-7b-instruct:free")
+
+    if "error" in llm_result:
+        raise HTTPException(status_code=400, detail=f"LLM Provider Error: {llm_result['error']}")
+
+    content = "No content"
+    try:
+        content = llm_result['choices'][0]['message']['content']
+        cleaned_content = clean_json_string(content)
+        inferred = json.loads(cleaned_content)
 
         # Validation & Normalization
         inferred['ai_intensity_score'] = max(0.0, min(1.0, float(inferred.get('ai_intensity_score', 0.5))))
@@ -136,8 +148,7 @@ Output only JSON with these fields plus an overall confidence score (0–1).
         
         valid_stages = ['Emerging', 'Growing', 'Mature']
         stage = str(inferred.get('industry_ai_adoption_stage', 'Growing')).capitalize()
-        if stage not in valid_stages:
-            stage = 'Growing'
+        if stage not in valid_stages: stage = 'Growing'
         inferred['industry_ai_adoption_stage'] = stage
         
         confidence = float(inferred.get('confidence', 0.5))
@@ -145,7 +156,7 @@ Output only JSON with these fields plus an overall confidence score (0–1).
         
         return inferred
     except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Inference failed: {str(e)}")
+        raise HTTPException(status_code=400, detail=f"Parsing Error: {str(e)}. Raw Content: {content[:50]}...")
 
 @app.post("/predict")
 def predict(data: JobPredictionRequest):
