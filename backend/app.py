@@ -39,9 +39,13 @@ client = OpenAI(
   api_key=OPENROUTER_API_KEY,
 )
 
+@app.get("/")
+def root():
+    return {"message": "AI Job Risk Predictor API is running. Use /health for status."}
+
 @app.get("/health")
 def health():
-    return {"status": "ok"}
+    return {"status": "ok", "model_loaded": model is not None}
 
 # --- SCHEMAS ---
 
