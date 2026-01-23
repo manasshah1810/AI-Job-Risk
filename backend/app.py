@@ -174,36 +174,25 @@ def predict(data: JobPredictionRequest):
 
     try:
         # Prepare data for the model with EXACT column order as training
-        # Features: industry, seniority_level, company_size, ai_intensity_score, 
-        #           industry_ai_adoption_stage, job_description_embedding_cluster
+        # Training features: ['ai_intensity_score', 'job_description_embedding_cluster', 'industry_ai_adoption_stage', 'seniority_level']
         
         input_dict = {
-            'industry': data.industry or "Not specified",
-            'seniority_level': data.seniority_level,
-            'company_size': data.company_size or "Not specified",
             'ai_intensity_score': float(data.ai_intensity_score),
+            'job_description_embedding_cluster': str(data.job_description_embedding_cluster),
             'industry_ai_adoption_stage': data.industry_ai_adoption_stage,
-            'job_description_embedding_cluster': str(data.job_description_embedding_cluster)
+            'seniority_level': data.seniority_level
         }
         
-        # Create DataFrame and enforce column order
-        features_order = [
-            'industry', 
-            'seniority_level', 
-            'company_size', 
-            'ai_intensity_score', 
-            'industry_ai_adoption_stage', 
-            'job_description_embedding_cluster'
-        ]
-        
+        # Enforce the exact order the model expects
+        features_order = ['ai_intensity_score', 'job_description_embedding_cluster', 'industry_ai_adoption_stage', 'seniority_level']
         input_data = pd.DataFrame([input_dict])[features_order]
         
         # Get prediction and probability
         prediction = model.predict(input_data)[0]
         probability = model.predict_proba(input_data)[0][1]
         
-        # Handle different return types from different models (CatBoost vs Sklearn)
-        if isinstance(prediction, (np.ndarray, list)):
+        # Handle different return types (CatBoost returns arrays)
+        if hasattr(prediction, "__len__") and not isinstance(prediction, (str, bytes)):
             prediction = int(prediction[0])
         else:
             prediction = int(prediction)
