@@ -166,30 +166,40 @@ def predict(data: JobPredictionRequest):
     This endpoint is strict and expects all required features.
     """
     if model is None:
-        raise HTTPException(status_code=500, detail="Model not loaded")
+        raise HTTPException(status_code=500, detail="ML Model not loaded on server")
 
     try:
-        # Prepare data for the model. 
-        # Note: We include industry and company_size if they were part of the training set.
+        # Prepare data for the model with EXACT column order as training
+        # Features: industry, seniority_level, company_size, ai_intensity_score, 
+        #           industry_ai_adoption_stage, job_description_embedding_cluster
+        
         input_dict = {
-            'ai_intensity_score': data.ai_intensity_score,
-            'job_description_embedding_cluster': str(data.job_description_embedding_cluster),
-            'industry_ai_adoption_stage': data.industry_ai_adoption_stage,
+            'industry': data.industry or "Not specified",
             'seniority_level': data.seniority_level,
-            'industry': data.industry,
-            'company_size': data.company_size
+            'company_size': data.company_size or "Not specified",
+            'ai_intensity_score': float(data.ai_intensity_score),
+            'industry_ai_adoption_stage': data.industry_ai_adoption_stage,
+            'job_description_embedding_cluster': str(data.job_description_embedding_cluster)
         }
         
-        input_data = pd.DataFrame([input_dict])
+        # Create DataFrame and enforce column order
+        features_order = [
+            'industry', 
+            'seniority_level', 
+            'company_size', 
+            'ai_intensity_score', 
+            'industry_ai_adoption_stage', 
+            'job_description_embedding_cluster'
+        ]
         
-        # Ensure we only pass features the model was trained on
-        # If the model is a pipeline, it will handle filtering or we can do it here
-        # For now, we pass the core features.
+        input_data = pd.DataFrame([input_dict])[features_order]
         
+        # Get prediction and probability
         prediction = model.predict(input_data)[0]
         probability = model.predict_proba(input_data)[0][1]
         
-        if isinstance(prediction, np.ndarray):
+        # Handle different return types from different models (CatBoost vs Sklearn)
+        if isinstance(prediction, (np.ndarray, list)):
             prediction = int(prediction[0])
         else:
             prediction = int(prediction)
@@ -200,6 +210,7 @@ def predict(data: JobPredictionRequest):
             'message': 'High Risk' if prediction == 1 else 'Low Risk'
         }
     except Exception as e:
+        print(f"PREDICTION ERROR: {str(e)}")
         raise HTTPException(status_code=400, detail=f"Prediction failed: {str(e)}")
 
 if __name__ == "__main__":

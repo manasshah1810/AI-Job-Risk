@@ -63,8 +63,9 @@ function App() {
       const response = await axios.post(`${API_BASE}/predict`, predictionPayload)
       setResult(response.data)
     } catch (err) {
-      setError('Prediction failed.')
-      console.error(err)
+      const msg = err.response?.data?.detail || err.message || 'Prediction failed';
+      setError(`Prediction Error: ${msg}`);
+      console.error('Prediction Error Details:', err);
     } finally {
       setLoading(false)
     }
