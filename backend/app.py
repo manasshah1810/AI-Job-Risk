@@ -107,7 +107,7 @@ Return ONLY a JSON object. No preamble.
 }}
 """
 
-    def call_llm(model_name="google/gemma-3n-e2b-it:free"):
+    def call_llm(model_name="nvidia/nemotron-3-nano-30b-a3b:free"):
         # Debug: Print masked key to logs (only first 4 chars)
         key_preview = f"{OPENROUTER_API_KEY[:4]}..." if OPENROUTER_API_KEY else "None"
         print(f"DEBUG: Calling OpenRouter with model {model_name}. Key preview: {key_preview}")
@@ -127,8 +127,8 @@ Return ONLY a JSON object. No preamble.
             print(f"ERROR: OpenRouter call failed: {str(e)}")
             return {"error": str(e)}
 
-    # Try primary model (Gemma 3 as requested in snippet)
-    llm_result = call_llm("google/gemma-3n-e2b-it:free")
+    # Try primary model (Mistral 7B - High availability free model)
+    llm_result = call_llm("nvidia/nemotron-3-nano-30b-a3b:free")
     
     # Fallback if primary fails
     if "error" in llm_result:
